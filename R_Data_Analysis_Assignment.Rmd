@@ -1,0 +1,262 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(scales)
+```
+
+### Load data
+
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+* * *
+
+## Part 1: Data
+The data has been collected through landline telephonic interviews as well as cellular telephonic interviews. Their main objective is to collect uniform data that is state specific and they take into account behavioural risk factors of non-institutionalized adult population.It collects the data from all 50 states and terrotories.
+As the interviews are conducted on a randomly selected member of a family this shows that they use stratified sampling so this means that they can only make assosications from the data collected and not imply causation as all the data that is collected is observational and not obtained from a study.
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+Is there any association between hours of sleep and mental health?
+
+I wanted to ask this question as i tend to sleep less that 8 hours on a daily basis and wanted to see if there was any relation between mental health and the number of hours one sleeps.
+
+
+**Research quesion 2:**
+How many hours per week one works compared to income range and how it affects ones satisfaction from life?
+
+**Research quesion 3:**
+Is there any association between income group and height of a person?
+
+When i was a kid i always wanted to be really tall. I thought what would the other benefits of being really tall be. Hence this question.
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+**Research quesion 1:**
+
+First lets see out of all the people how many number of days are they the most mentally distrubed  or the number of days their mental health is not good.
+
+```{r}
+brfss2013 %>%
+  group_by(menthlth) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+```
+
+As we can see here that almost 68% of people have 0 mentally disturbing days. Although coming in second is the maximum number of days i.e. 30 days. Lets have a look at the number of hours slept by both the category of people.
+
+```{r}
+brfss2013_menthlth_0 <- brfss2013 %>%
+  filter(menthlth!="NA",sleptim1!="NA",menthlth==0) %>%
+  group_by(sleptim1) %>%
+  summarise(menthlth_0_count=n()) %>%
+  arrange(desc(menthlth_0_count))
+```
+
+This is the table for all the people who have 0 days in a month that are mentally disturbing.
+
+```{r}
+brfss2013_menthlth_0
+```
+
+We can see that the most number of people who dont have any days where they are mentally disturbed tend to sleep about 7-8 hours in general.
+
+Lets have a look at some graphs as well.
+```{r}
+ggplot(data=brfss2013_menthlth_0,aes(x=sleptim1,y=menthlth_0_count))+geom_area(color="Black",fill="gray50")+ggtitle("Mental health compared to sleep time.")                                                           
+```
+
+We can see that this distribution follows a normal curve. Most people tend to sleep for 7 hours but coming in close at 8 we can see a sharp cut in the curve. This could be due to people rounding up the number of hours they sleep to 8.
+
+Lets look at the same details for people who had the most number of days where 
+their mental health was not good.
+
+```{r}
+brfss2013_menthlth_30 <- brfss2013 %>%
+  filter(menthlth!="NA",sleptim1!="NA",menthlth==30) %>%
+  group_by(sleptim1) %>%
+  summarise(menthlth_30_count=n()) %>%
+  arrange(desc(menthlth_30_count))
+
+brfss2013_menthlth_30
+```
+We see that the people who have the most mentally disturbing days usually get only 6 hours of sleep on average. 
+
+Lets have a look at the graph of this data.
+
+```{r}
+ggplot(data=brfss2013_menthlth_30,aes(x=sleptim1,y=menthlth_30_count))+geom_area(color="Black",fill="gray50")+ggtitle("Mental health compared to sleep time.")
+```
+
+As we can see that people who had the most number of days where their mental health was not good slept on an average about 6 hours. We can also see that this graph is much less normal. Although this can be due to the fact that the number of observations for the people who more mentally disturbed days is more in general than compared to people who dont have mentally disturbing days.
+
+```{r}
+brfss2013 %>%
+  filter(menthlth!="NA",sleptim1!="NA") %>%
+  select(sleptim1) %>%
+  summary(sleptim1)
+```
+
+
+We can infer from this data that there is an association between number of hours slept and days of mental health not being good.
+There has to be many other confounding variables that we cannot control for as this is only an observational study. Some variables could also be income level,Employment status, Marital status.
+
+Variables  used: "menthlth" and "sleptim1".
+
+**Research quesion 2:**
+
+Here we can see that the average number of hours per week is 43.03 hours and the median is at 40.
+
+```{r}
+brfss2013 %>%
+  filter(scntwrk1!="NA") %>%
+  select(scntwrk1) %>%
+  summarise(scntwrk1_mean=mean(scntwrk1),scntwrk1_median=median(scntwrk1),scntwrk1_count=n())
+```
+We can see here more people tend to earn more than $50,000. Lets have a look at who works for the most hours out of this entire group.
+
+```{r}
+brfss2013_scntwrk1<-brfss2013 %>%
+  filter(scntwrk1!="NA",X_incomg!="NA") %>%
+  select(scntwrk1,X_incomg) %>%
+  group_by(X_incomg) %>%
+  summarise(scntwrk1_mean1=round(mean(scntwrk1),2))
+brfss2013_scntwrk1
+```
+
+```{r}
+dcd<-30
+ggplot(data=brfss2013_scntwrk1,aes(x=X_incomg,y=scntwrk1_mean1-dcd,fill=X_incomg))+geom_col()+theme(axis.text.x = element_text(angle = 25,hjust=1))+ggtitle("Difference in mean compared to their salary ranges.")+xlab("Income ranges")+ylab("Difference in mean")+geom_text(aes(label=c(scntwrk1_mean1[1]-dcd,scntwrk1_mean1[2]-dcd,scntwrk1_mean1[3]-dcd,scntwrk1_mean1[4]-dcd,scntwrk1_mean1[5]-dcd),vjust=c(0,0,0,0,0)))
+```
+We can cleary see that as the salary increases so does the number of hours.
+
+Lets now compare this to satisfaction with life.
+
+```{r}
+brfss2013_scntwrk_lsatisfy<-brfss2013 %>%
+  filter(scntwrk1!="NA",X_incomg!="NA",lsatisfy!="NA") %>%
+  select(scntwrk1,X_incomg,lsatisfy) %>%
+  group_by(X_incomg,lsatisfy) %>%
+  summarise(scntwrk1_mean1=round(mean(scntwrk1),2))
+brfss2013_scntwrk_lsatisfy1<-head(brfss2013_scntwrk_lsatisfy,14)
+brfss2013_scntwrk_lsatisfy1
+```
+Lets see how this summary looks on a plot
+
+```{r}
+p=ggplot(brfss2013_scntwrk_lsatisfy1,aes(X_incomg,scntwrk1_mean1,fill=lsatisfy))+geom_col()
+
+text_positions<-c(-6,-0.90,2,-7,-3,3,-3,3,-7,-1,2.5,-9,-3,3)
+
+p+theme(axis.text.x = element_text(angle =25,hjust=1))+ggtitle("Satisfaction vs Income range vs Work hours in a week ") +ylab("Work hours in a week") + xlab("Income ranges")+labs(fill = "Satisfaction")+geom_text(aes(label=c(scntwrk1_mean1[1],scntwrk1_mean1[2],scntwrk1_mean1[3],scntwrk1_mean1[4],scntwrk1_mean1[5],scntwrk1_mean1[6],scntwrk1_mean1[7],scntwrk1_mean1[8],scntwrk1_mean1[9],scntwrk1_mean1[10],scntwrk1_mean1[11],scntwrk1_mean1[12],scntwrk1_mean1[13],scntwrk1_mean1[14])), vjust=text_positions)
+```
+
+Here we can see that there is alot of variation in the satisfaction levels of people from different income ranges, it is quite interesting to note that the number of people dissatisfied with earning $50,000 are more than compared to those earning less than $15,000.
+
+Variables used:
+"lsatisfy"
+
+"X_incomg"
+
+"scntwrk1"
+
+
+
+**Research quesion 3:** 
+
+Lets compare and see if height has anything to do with how much a person earns and if there is some sort of co-relation between the two variables.
+
+To compare lets take a sample from our data set.
+
+```{r}
+sample_brfss2013<-brfss2013[sample(nrow(brfss2013),0.05*nrow(brfss2013),replace = F),] %>%
+  filter(htin4!="NA",htin4<1000,X_incomg!="NA") %>%
+  select(X_incomg,htin4) %>%
+  group_by(X_incomg) %>%
+  summarise(mean=mean(htin4))
+head(sample_brfss2013,10)
+```
+
+
+I have take a sample size of about 5% of our data set. Removed any "NA" as they might interfere with our statistics.
+
+Lets see how the data looks once plotted against each other.
+```{r}
+ggplot(data=sample_brfss2013,aes(x=X_incomg,y=mean-65,fill=X_incomg))+geom_col()+theme(axis.text.x = element_text(angle = 25,hjust=1))+ggtitle("Difference in mean compared to their salary ranges.")+xlab("Income ranges")+ylab("Difference in mean")
+```
+
+Here we can see that as the salaries increase even the mean of the height increases.
+
+Lets also have a look at the medians of all different categories of the variable X_incomg compared to height.
+```{r}
+median_sample_brfss2013<- brfss2013[sample(nrow(brfss2013),0.05*nrow(brfss2013),replace = F),] %>%
+  filter(htin4!="NA",htin4<1000,X_incomg!="NA") %>%
+  select(X_incomg,htin4) %>%
+  group_by(X_incomg,htin4)
+```
+
+```{r}
+ggplot(median_sample_brfss2013,aes(x=X_incomg,y=htin4,fill=X_incomg)) + geom_boxplot()+theme(axis.text.x = element_text(angle = 25,hjust=1))+ggtitle("Boxplot showcasing medians compared to income ranges.")+xlab("Income ranges")+ylab("Heights in inches")
+```
+
+Here we can see that as the salaries increase the medians also have a slow but noticeable increase. The number of outliers also tend to reduce as we go higher on the salary scale. Also even tho the numbers of people in the $50,000 or more category are higher, median being robust doesnt get affected by the population of our sample.
+
+Lets see what the mean of all the heights are.
+
+```{r}
+brfss2013 %>%
+  filter(htin4!="NA") %>%
+  select(htin4) %>%
+  summarise(mean_htin4=mean(htin4))
+```
+
+Now we can see that the average is 66.7 inches. Lets have a look at how incomes vary according to heights using 66.7 inches as a bench mark to distinguish the 2 categories.
+
+```{r}
+heightcategory_brfss2013 <- median_sample_brfss2013 %>%
+  mutate(heightcategory=ifelse(htin4>=66.7,"Above 66.7","Below 66.7")) %>%
+  filter(X_incomg!="NA") %>%
+  group_by(X_incomg,heightcategory) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+heightcategory_brfss2013
+```
+```{r}
+ggplot(heightcategory_brfss2013,aes(X_incomg,count,fill=heightcategory))+geom_col()+theme(axis.text.x = element_text(angle = 25,hjust=1))+ggtitle("Difference between the two categories")+xlab("Income ranges")+ylab("Count")+labs(fill = "Height Category")
+```
+
+We can see that a larger percentage of people who are over the average of height of 66.7 are given jobs that pay over $50,000 than compared to the number of people who have a height below 66.7.
+
+Noticing the other counts we see that people who are below the height of 66.7 have more jobs below the $50,000 benchmark. This strengthens our point even more.
+
+We can make an association between the 2 variables htin4 and X_incomg. I have used these two variables for ease of computation and they also give accurate and readable results.
+
+Variables used. "htin4","X_incomg" and "heightcategory".
+
+
+
+
+
+
